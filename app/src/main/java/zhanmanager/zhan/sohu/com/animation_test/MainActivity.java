@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
 
     private WebViewClient web_viewClient = new WebViewClient() {
         boolean timeout = true;
-
+        @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             if (!getContext(url)) {
                 view.loadUrl(url);
@@ -134,15 +134,16 @@ public class MainActivity extends Activity {
             }
             return true;
         }
-
+        @Override
         public void onReceivedError(WebView view, int errorCode,
                                     String description, String failingUrl) {
             view.loadUrl(errorHtml);
-            super.onReceivedError(view, errorCode, description, failingUrl);
             is_refresh = true;
+            super.onReceivedError(view, errorCode, description, failingUrl);
+
             //这里进行无网络或错误处理，具体可以根据errorCode的值进行判断，做跟详细的处理。
         }
-
+        @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             new Thread(new Runnable() {
                 @Override
@@ -161,11 +162,16 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void onPageFinished(WebView view, String url) {
+        public void doUpdateVisitedHistory (WebView view, String url, boolean isReload) {
             if (is_clear_history) {
                 is_clear_history = false;
                 browser.clearHistory();//清楚历史记录
             }
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+
             timeout = false;
             super.onPageFinished(view, url);
         }
@@ -184,7 +190,13 @@ public class MainActivity extends Activity {
     private ImageButton.OnClickListener btn_goLeft_listener = new ImageButton.OnClickListener() {
         public void onClick(View v) {
             browser.stopLoading();
-            if (browser.canGoBack()) {
+            if (browser.canGoBack()&&is_refresh) {
+                is_refresh = false;
+                browser.goBack();
+                if (browser.canGoBack()){
+                    browser.goBack();
+                }
+            }else if(browser.canGoBack()){
                 browser.goBack();
             }
         }
@@ -193,12 +205,11 @@ public class MainActivity extends Activity {
     private ImageButton.OnClickListener btn_refresh_listener = new ImageButton.OnClickListener() {
         public void onClick(View v) {
             if (is_refresh && browser.canGoBack()) {
-                browser.clearCache(false);
+                is_refresh = false;
                 browser.goBack();
-                is_refresh = false;
             } else if (is_refresh) {
-                browser.reload();
                 is_refresh = false;
+                browser.reload();
             } else {
                 browser.reload();
             }
@@ -207,6 +218,7 @@ public class MainActivity extends Activity {
     //主页按键响应函数
     private ImageButton.OnClickListener btn_home_listener = new ImageButton.OnClickListener() {
         public void onClick(View v) {
+            //is_refresh = false;
             browser.loadUrl(home_page);
             is_clear_history = true;
 
